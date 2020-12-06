@@ -1,0 +1,13 @@
+[package]
+name = "octopus"
+version = "0.1.0"
+authors = ["Archimboldi <1751844336@qq.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sciter-rs = "0.5.53"
+
+[target.'cfg(windows)'.build-dependencies]
+resw = { git = "https://github.com/crlf0710/resw-rs" }

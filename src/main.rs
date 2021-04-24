@@ -4,12 +4,12 @@ extern crate sciter;
 // use libloading::{Symbol, Library};
 // use libc::*;
 // use std::{ffi::CString, ptr::null_mut};
-use std::fs;
 use std::thread;
-use tokio::{runtime::Runtime, sync::mpsc, net::TcpStream};
+use tokio::{runtime::Runtime, sync::mpsc, net::TcpStream, io::AsyncWriteExt};
 use tokio_util::compat::TokioAsyncWriteCompatExt;
 use once_cell::sync::Lazy;
 
+use std::io::prelude::*;
 struct Handler<'a>{
     tx: &'a mpsc::Sender<String>,
     xr: &'a mut mpsc::Receiver<String>,
@@ -23,13 +23,22 @@ impl<'a> Handler<'a>{
         self.xr.blocking_recv().unwrap()
     }
     fn write(&self, d:String,e:String,f:String) -> i32 {
-        0
+        let msg = format!("{},{},{}\r\n",d,e,f);
+        let mut file = std::fs::OpenOptions::new().append(true).create(true).open("dat.csv").unwrap();
+        // let mut reader = io::BufReader::new(&file);
+        // let mut buf = String::new();
+        // reader.read_to_string(&mut buf).unwrap();
+        
+        if let Ok(_) = file.write(msg.as_bytes()){
+            return 0;
+        }
+        1
     }
     fn exporto(&self, o:i32) {
         if o == 0 {
-            fs::copy("./temp.csv", format!("{}/挂接查询.csv",&self.dist)).unwrap();
+            std::fs::copy("./temp.csv", format!("{}/挂接查询.csv",&self.dist)).unwrap();
         }else if o == 1 {
-            fs::copy("./record.csv", format!("{}/人工记录.csv",&self.dist)).unwrap();
+            std::fs::copy("./dat.csv", format!("{}/人工记录.csv",&self.dist)).unwrap();
         }
     }
 }
@@ -89,10 +98,13 @@ fn main() {
                     let mut zys = 0;
                     let mut nys = 0;
                     let mut ys0 = 0;
+
                     if let Some(rows) = rowsets.get(0) {
+                        let mut file = tokio::fs::File::create("temp.csv").await.unwrap();
                         for row in rows {
                             ts = ts+1;
                             let pid =row.get::<i32, _>(0).unwrap();
+                            let dh = row.get::<String, _>(2).unwrap();
                             let u = format!("SELECT YS,TITLE from dbo.D_FILE{} WHERE STATUS = 0 AND DID = {}", args[1], pid);
                             let resu = client
                                 .query(u, 
@@ -104,8 +116,11 @@ fn main() {
                                 if let Some(re) = res.get(0){
                                     for r in re {
                                         let ys = r.get::<i32, _>(0);
+                                        let title = row.get::<String, _>(1).unwrap();
+                                        let mut buf = String::new();
                                         if ys != None {
                                             let s = ys.unwrap();
+                                            buf = format!("{},{},{}\r\n",dh,title,s);
                                             if s == 0 {
                                                 ys0 = ys0+1;
                                             }else {
@@ -113,7 +128,10 @@ fn main() {
                                             }
                                         }else{
                                             nys = nys+1;
+                                            buf = format!("{},{},,\r\n",dh,title)
                                         }
+                                        file.write_all(buf.as_bytes()).await.unwrap();
+                                        buf.clear();
                                     }
                                 }
                         }

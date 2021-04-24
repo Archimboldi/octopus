@@ -25,9 +25,20 @@ class Clock: Reactor.Component
      <form #f1>
       档案类型:
         <select|dropdown name="dalx">
-          <option value="1" selected>Red</option>
-          <option value="2">Green</option>
-          <option value="3">Blue</option>
+          <option value="1" selected>基建档案</option>
+          <option value="17">基建档案（SZ,ZB）</option>
+          <option value="7">文书档案</option>
+          <option value="8">会计档案</option>
+          <option value="10">合同档案</option>
+          <option value="6">规划档案</option>
+          <option value="22">规划档案（建设管理）</option>
+          <option value="3">环评档案</option>
+          <option value="20">环评档案（一级）</option>
+          <option value="19">环评档案（二级）</option>
+          <option value="12">印模档案</option>
+          <option value="4">声像档案</option>
+          <option value="5">实物档案</option>
+          <option value="23">政府采购</option>
         </select>
         <input type="date" name="startd" value="now" /> - 
         <input type="date" name="endd" value={this.tomorrow} />

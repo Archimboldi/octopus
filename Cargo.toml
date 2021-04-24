@@ -12,7 +12,7 @@ sciter-rs = "0.5.55"
 #libc = "0.2.91"
 tiberius = "0.5.12"
 once_cell = "*"
-tokio = { version = "1.5.0", features = ["sync", "rt-multi-thread", "net"] }
+tokio = { version = "1.5.0", features = ["sync", "rt-multi-thread", "net", "fs", "io-util"] }
 tokio-util = { version = "0.6.6", features = ["compat"] }
 anyhow = "1.0.40"
 

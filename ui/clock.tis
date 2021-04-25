@@ -29,9 +29,9 @@ class Clock: Reactor.Component
         <select|dropdown name="dalx">
           <option value="1" selected>基建档案</option>
           <option value="17">基建档案（SZ,ZB）</option>
-          <option value="7">文书档案</option>
+          <option value="10">文书档案</option>
           <option value="8">会计档案</option>
-          <option value="10">合同档案</option>
+          <option value="7">合同档案</option>
           <option value="6">规划档案</option>
           <option value="22">规划档案（建设管理）</option>
           <option value="3">环评档案</option>

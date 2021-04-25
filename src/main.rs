@@ -84,12 +84,13 @@ fn main() {
         Runtime::new().unwrap().block_on(async move {
             static CONN_STR: Lazy<String> = Lazy::new(|| {
                 std::env::var("TIBERIUS_CONNECTION_STRING").unwrap_or_else(|_| {
-                    "server=tcp:192.168.0.41,1433;IntegratedSecurity=true;TrustServerCertificate=true".to_owned()
+                    // "server=tcp:192.168.0.41,1433;IntegratedSecurity=true;TrustServerCertificate=true".to_owned()
+                    "server=tcp:localhost,1433;IntegratedSecurity=true;TrustServerCertificate=true".to_owned()
                 })
             });
             let mut config = Config::from_ado_string(&CONN_STR).unwrap();
             config.database("cb");
-            config.authentication(AuthMethod::sql_server("sa", "123456"));
+            config.authentication(AuthMethod::sql_server("sa", "12345"));
             let tcp = TcpStream::connect(config.get_addr()).await.unwrap();
             tcp.set_nodelay(true).unwrap();
             let mut client = Client::connect(config, tcp.compat_write()).await.unwrap();

@@ -8,8 +8,10 @@ use std::thread;
 use tokio::{runtime::Runtime, sync::mpsc, net::TcpStream, io::AsyncWriteExt};
 use tokio_util::compat::TokioAsyncWriteCompatExt;
 use once_cell::sync::Lazy;
-
 use std::io::prelude::*;
+use encoding::all::GBK;
+use encoding::{Encoding, EncoderTrap};
+
 struct Handler<'a>{
     tx: &'a mpsc::Sender<String>,
     xr: &'a mut mpsc::Receiver<String>,
@@ -55,16 +57,22 @@ fn main() {
     let (tx, mut rx) = mpsc::channel::<String>(1);
     let (xt, mut xr) = mpsc::channel::<String>(1);
     let sync_code = thread::spawn(move || {
-        let html = include_bytes!("../ui/clock.htm");
-        // let resouces = include_bytes!("../ui.rc");
-        let mut frame = sciter::WindowBuilder::main_window().with_size((400, 300)).with_pos((540,270)).create();
-        let load = format!("file://{}/ui/clock.htm", std::env::current_dir().unwrap().to_str().unwrap());
-        frame.load_html(html, Some(&load));
-        // frame.archive_handler(resouces).expect("Invalid archive");
+        // let html = include_bytes!("../ui/clock.htm");
+
+        let resouces = include_bytes!("../ui.rc");
+
+        let mut frame = sciter::WindowBuilder::main_window().with_size((378, 340)).with_pos((540,256)).create();
+        
+        // let load = format!("file://{}/ui/clock.htm", std::env::current_dir().unwrap().to_str().unwrap());
+        // frame.load_html(html, Some(&load));
+        
+        //packfolder.exe ui ui.rc -binary
+        frame.archive_handler(resouces).expect("Invalid archive");
+        frame.load_file("this://app/clock.htm");
+
         let dist: String = std::env::args().nth(1).unwrap();
         let handler = Handler{tx:&tx, xr: &mut xr,dist:dist};
         frame.event_handler(handler);
-        frame.load_file("this://app/clock.htm");
         
         frame.run_app();
         tx.blocking_send("over".to_string()).unwrap();
@@ -104,7 +112,7 @@ fn main() {
                         for row in rows {
                             ts = ts+1;
                             let pid =row.get::<i32, _>(0).unwrap();
-                            let dh = row.get::<String, _>(2).unwrap();
+                            let dh = row.get::<&str, _>(2).unwrap();
                             let u = format!("SELECT YS,TITLE from dbo.D_FILE{} WHERE STATUS = 0 AND DID = {}", args[1], pid);
                             let resu = client
                                 .query(u, 
@@ -116,11 +124,11 @@ fn main() {
                                 if let Some(re) = res.get(0){
                                     for r in re {
                                         let ys = r.get::<i32, _>(0);
-                                        let title = row.get::<String, _>(1).unwrap();
+                                        let title = r.get::<&str, _>(1).unwrap();
                                         let mut buf = String::new();
                                         if ys != None {
                                             let s = ys.unwrap();
-                                            buf = format!("{},{},{}\r\n",dh,title,s);
+                                            buf = format!("{},{},{}\r\n",dh,s,title);
                                             if s == 0 {
                                                 ys0 = ys0+1;
                                             }else {
@@ -128,9 +136,9 @@ fn main() {
                                             }
                                         }else{
                                             nys = nys+1;
-                                            buf = format!("{},{},,\r\n",dh,title)
+                                            buf = format!("{},,{},\r\n",dh,title)
                                         }
-                                        file.write_all(buf.as_bytes()).await.unwrap();
+                                        file.write_all(&GBK.encode(&buf, EncoderTrap::Strict).unwrap()).await.unwrap();
                                         buf.clear();
                                     }
                                 }

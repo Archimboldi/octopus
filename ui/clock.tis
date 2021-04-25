@@ -22,8 +22,10 @@ class Clock: Reactor.Component
   function render() {
     return
      <clock>
+     <label.title>挂接查询</label>
      <form #f1>
-      档案类型:
+      <div.row>
+      <label>档案类型：</label>
         <select|dropdown name="dalx">
           <option value="1" selected>基建档案</option>
           <option value="17">基建档案（SZ,ZB）</option>
@@ -40,19 +42,34 @@ class Clock: Reactor.Component
           <option value="5">实物档案</option>
           <option value="23">政府采购</option>
         </select>
+      </div>
+      <div.row>
         <input type="date" name="startd" value="now" /> - 
         <input type="date" name="endd" value={this.tomorrow} />
-        <button.index>检索</button>
-        <label>{this.res}</label>
-        <button.export>详情</button>
+      </div>
+      <div.row1>
+      <button.index>检索</button>
+      <label>{this.res}</label>
+      <button.export>详情</button>
+      </div>
      </form>
+     <label.title>人工记录</label>
      <form #f2>
-      <input type="date" name="today" value="now" />
-      <label>挂接量：</label><input name="sl" />
+      <div.row>
+        <label>挂接时间：</label>
+        <input type="date" name="today" value="now" />
+      </div>
+      <div.row>
+      <label>件数：</label><input name="sl" />
+      </div>
+      <div.row>
       <label>页数：</label><input name="ys" />
+      </div>
+      <div.row1>
       <button.record>记录</button>
       <label>{this.rec}</label>
       <button.export2>详情</button>
+      </div>
      </form>
      </clock>;
   }

@@ -4,16 +4,20 @@
     display: block;
     flow:vertical;
   }
-  span.time { 
-    display:inline-block; 
-    white-space:nowrap; 
-  }
-  div.greeting {
-    display:inline;
+  div.row {
+    display:block;
     white-space:nowrap;
-    font-size: 17px;
-  }
-  button.index {
     font-size: 14px;
+    margin-left:57px;
+  }
+  div.row1 {
+    margin-left:54px;
+  }
+  form {
+    margin:12px;
+  }
+  label.title {
+    display: block;
+    margin-left:34px;
   }
 }

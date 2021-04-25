@@ -15,7 +15,7 @@ once_cell = "*"
 tokio = { version = "1.5.0", features = ["sync", "rt-multi-thread", "net", "fs", "io-util"] }
 tokio-util = { version = "0.6.6", features = ["compat"] }
 anyhow = "1.0.40"
-
+encoding = "*"
 
 [target.'cfg(windows)'.build-dependencies]
 resw = { git = "https://github.com/crlf0710/resw-rs" }

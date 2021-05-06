@@ -1,9 +1,9 @@
-// #![windows_subsystem = "windows"]
+#![windows_subsystem = "windows"]
 #[macro_use]
 extern crate sciter;
 use libloading::{Symbol, Library};
 use libc::*;
-use std::{ffi::CString, fmt::format, ptr::null_mut};
+use std::{ffi::CString, ptr::null_mut};
 use std::thread;
 use tokio::{runtime::Runtime, sync::mpsc, net::TcpStream, io::AsyncWriteExt};
 use tokio_util::compat::TokioAsyncWriteCompatExt;
@@ -11,7 +11,6 @@ use once_cell::sync::Lazy;
 use std::io::prelude::*;
 use encoding::all::GBK;
 use encoding::{Encoding, EncoderTrap};
-use std::collections::HashSet;
 
 struct Handler<'a>{
     tx: &'a mpsc::Sender<String>,
@@ -111,24 +110,17 @@ fn main() {
                         let mut zys = 0;
                         let mut nys = 0;
                         let mut ys0 = 0;
-                        
-                        let mut ajs = 0;
-                        let mut ajzys = 0;
-                        let mut ajnys = 0;
-                        let mut ajys0 = 0;
-                      
+
                         if let Some(rows) = rowsets.get(0) {
                             let mut file = tokio::fs::File::create("temp.csv").await.unwrap();
-                            let mut ppids = HashSet::new();
                             for row in rows {
                                 ts = ts+1;
                                 let pid =row.get::<i32, _>(0).unwrap();
                                 let dh = row.get::<&str, _>(2).unwrap();
-                                let u = format!("SELECT YS,TITLE,PID from dbo.D_FILE{} WHERE STATUS = 0 AND DID = {} Order by PID", args[1], pid);
-                                
+                                let u = format!("SELECT YS,TITLE from dbo.D_FILE{} WHERE STATUS = 0 AND DID = {}", args[1], pid);
                                 let resu = client
                                     .query(u, 
-                                        &[&1, &2, &3]
+                                        &[&1, &2]
                                     )
                                     .await
                                     .unwrap();
@@ -136,15 +128,7 @@ fn main() {
                                     if let Some(re) = res.get(0){
                                         for r in re {
                                             let ys = r.get::<i32, _>(0);
-                                            let tit = r.get::<&str, _>(1);
-                                            let mut title = "";
-                                            if let Some(titl) = tit {
-                                                title = titl;
-                                            }
-                                            
-                                            let ppid = r.get::<i32, _>(2).unwrap();
-                                            ppids.insert(ppid);
-
+                                            let title = r.get::<&str, _>(1).unwrap();
                                             let mut buf = String::new();
                                             if ys != None {
                                                 let s = ys.unwrap();
@@ -163,53 +147,8 @@ fn main() {
                                         }
                                     }
                             }
-                            let at = "\r\n\r\n\r\n以下为涉及到的案卷信息：\r\n";
-                            file.write_all(&GBK.encode(at, EncoderTrap::Strict).unwrap()).await.unwrap();
-                            for aj in &ppids {
-                                if aj != &-1 {
-                                    ajs = ajs +1;
-                                    let j = format!("SELECT ZYS,KEYWORD,TITLE from dbo.D_VOL{} WHERE STATUS = 0 AND DID = {}", args[1],aj);
-                                    let resj = client
-                                    .query(j, 
-                                        &[&1, &2, &3]
-                                    )
-                                    .await
-                                    .unwrap();
-                                    let res = resj.into_results().await.unwrap();
-                                    if let Some(re) = res.get(0){
-                                        for r in re {
-                                            let ys = r.get::<i32,_>(0);
-                                            let keyword = r.get::<&str,_>(1).unwrap();
-                                            let tit = r.get::<&str, _>(1);
-                                            let mut title = "";
-                                            if let Some(titl) = tit {
-                                                title = titl;
-                                            }
-                                            let mut buf = String::new();
-                                            if ys != None {
-                                                let s = ys.unwrap();
-                                                buf = format!("{},{},{}\r\n",keyword,s,title);
-                                                if s == 0 {
-                                                    ajys0 = ajys0+1;
-                                                }else {
-                                                    ajzys = ajzys + s;
-                                                }
-                                            }else{
-                                                ajnys = ajnys+1;
-                                                buf = format!("{},,{},\r\n",keyword,title)
-                                            }
-                                            file.write_all(&GBK.encode(&buf, EncoderTrap::Strict).unwrap()).await.unwrap();
-                                            buf.clear();
-                                        }
-                                    }
-                                        
-                                }
-                            }
-                            ppids.clear();
                         }
-
-                       
-                        let msg = format!("-挂接数：{}件，总页数：{}页，页数为空：{}条，页数为0：{}条；涉及案卷：{}卷，总页数：{}页，卷页数为空：{}条，卷页数为0：{}条", ts, zys, nys, ys0,ajs,ajzys,ajnys,ajys0);
+                        let msg = format!("-挂接数：{}件，总页数：{}页，页数为空：{}条，页数为0：{}条", ts, zys, nys, ys0);
                         xt.send(msg).await.unwrap();
                     }else if c == "over".to_string() {
                         break;

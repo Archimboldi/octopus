@@ -1,9 +1,9 @@
-// #![windows_subsystem = "windows"]
+#![windows_subsystem = "windows"]
 #[macro_use]
 extern crate sciter;
 use libloading::{Symbol, Library};
 use libc::*;
-use std::{ffi::CString, fmt::format, ptr::null_mut};
+use std::{ffi::CString, ptr::null_mut};
 use std::thread;
 use tokio::{runtime::Runtime, sync::mpsc, net::TcpStream, io::AsyncWriteExt};
 use tokio_util::compat::TokioAsyncWriteCompatExt;
@@ -54,7 +54,7 @@ impl<'a> sciter::EventHandler for Handler<'a> {
 }
 
 fn main() {
-    use tiberius::{AuthMethod, Client, Config};
+    use tiberius::{AuthMethod, Client, Config, time::chrono::NaiveDateTime};
     if !token() {
         println!("加密锁验证失败");
     }else{
@@ -85,13 +85,13 @@ fn main() {
         Runtime::new().unwrap().block_on(async move {
             static CONN_STR: Lazy<String> = Lazy::new(|| {
                 std::env::var("TIBERIUS_CONNECTION_STRING").unwrap_or_else(|_| {
-                    // "server=tcp:192.168.0.41,1433;IntegratedSecurity=true;TrustServerCertificate=true".to_owned()
-                    "server=tcp:localhost,1433;IntegratedSecurity=true;TrustServerCertificate=true".to_owned()
+                    "server=tcp:192.168.0.41,1433;IntegratedSecurity=true;TrustServerCertificate=true".to_owned()
+                    // "server=tcp:localhost,1433;IntegratedSecurity=true;TrustServerCertificate=true".to_owned()
                 })
             });
             let mut config = Config::from_ado_string(&CONN_STR).unwrap();
             config.database("cb");
-            config.authentication(AuthMethod::sql_server("sa", "12345"));
+            config.authentication(AuthMethod::sql_server("sa", "123456"));
             let tcp = TcpStream::connect(config.get_addr()).await.unwrap();
             tcp.set_nodelay(true).unwrap();
             let mut client = Client::connect(config, tcp.compat_write()).await.unwrap();
@@ -99,10 +99,10 @@ fn main() {
                 if let Some(c) = rx.recv().await{
                     if c.starts_with("+") {
                         let args:Vec<&str> = c.splitn(4,";").collect();
-                        let que = format!("SELECT PID,DID,TITLE from dbo.E_FILE{} WHERE STATUS = 0 AND CREATETIME BETWEEN '{}' AND '{}'", args[1],args[2],args[3]);
+                        let que = format!("SELECT PID,DID,TITLE,CREATETIME from dbo.E_FILE{} WHERE STATUS = 0 AND CREATETIME BETWEEN '{}' AND '{}' ORDER BY CREATETIME", args[1],args[2],args[3]);
                         let stream = client
                             .query(que,
-                                &[&1, &2, &3],
+                                &[&1, &2, &3, &4],
                             )
                             .await
                             .unwrap();
@@ -119,13 +119,14 @@ fn main() {
                       
                         if let Some(rows) = rowsets.get(0) {
                             let mut file = tokio::fs::File::create("temp.csv").await.unwrap();
+                            file.write_all(&GBK.encode("挂接时间,档号,页数,题名\r\n", EncoderTrap::Strict).unwrap()).await.unwrap();
                             let mut ppids = HashSet::new();
                             for row in rows {
                                 ts = ts+1;
                                 let pid =row.get::<i32, _>(0).unwrap();
                                 let dh = row.get::<&str, _>(2).unwrap();
+                                let ct = row.get::<NaiveDateTime, _>(3).unwrap().format("%Y-%m-%d %H:%M:%S").to_string();
                                 let u = format!("SELECT YS,TITLE,PID from dbo.D_FILE{} WHERE STATUS = 0 AND DID = {} Order by PID", args[1], pid);
-                                
                                 let resu = client
                                     .query(u, 
                                         &[&1, &2, &3]
@@ -148,7 +149,7 @@ fn main() {
                                             let mut buf = String::new();
                                             if ys != None {
                                                 let s = ys.unwrap();
-                                                buf = format!("{},{},{}\r\n",dh,s,title);
+                                                buf = format!("{},{},{},{}\r\n",&ct,dh,s,title);
                                                 if s == 0 {
                                                     ys0 = ys0+1;
                                                 }else {
@@ -156,7 +157,7 @@ fn main() {
                                                 }
                                             }else{
                                                 nys = nys+1;
-                                                buf = format!("{},,{},\r\n",dh,title)
+                                                buf = format!("{},{},,{},\r\n",&ct,dh,title)
                                             }
                                             file.write_all(&GBK.encode(&buf, EncoderTrap::Strict).unwrap()).await.unwrap();
                                             buf.clear();
@@ -165,6 +166,7 @@ fn main() {
                             }
                             let at = "\r\n\r\n\r\n以下为涉及到的案卷信息：\r\n";
                             file.write_all(&GBK.encode(at, EncoderTrap::Strict).unwrap()).await.unwrap();
+                            file.write_all(&GBK.encode("案卷档号,页数,题名\r\n", EncoderTrap::Strict).unwrap()).await.unwrap();
                             for aj in &ppids {
                                 if aj != &-1 {
                                     ajs = ajs +1;
@@ -180,7 +182,7 @@ fn main() {
                                         for r in re {
                                             let ys = r.get::<i32,_>(0);
                                             let keyword = r.get::<&str,_>(1).unwrap();
-                                            let tit = r.get::<&str, _>(1);
+                                            let tit = r.get::<&str, _>(2);
                                             let mut title = "";
                                             if let Some(titl) = tit {
                                                 title = titl;
